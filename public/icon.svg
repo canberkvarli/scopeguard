@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background circle -->
+    <circle cx="64" cy="64" r="64" fill="url(#gradient)"/>
+    
+    <!-- Shield shape -->
+    <path d="M64 20L34 32V52C34 72 44 88 64 96C84 88 94 72 94 52V32L64 20Z" fill="white" opacity="0.95"/>
+    
+    <!-- Inner shield accent -->
+    <path d="M64 28L42 36V52C42 68 50 80 64 86C78 80 86 68 86 52V36L64 28Z" fill="url(#accentGradient)"/>
+    
+    <!-- AI Sparkle -->
+    <circle cx="80" cy="38" r="8" fill="#FFD700"/>
+    <path d="M80 30L81 36L87 37L81 38L80 44L79 38L73 37L79 36Z" fill="white"/>
+    
+    <!-- Checkmark in shield -->
+    <path d="M58 52L62 58L74 46" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <defs>
+      <linearGradient id="gradient" x1="0" y1="0" x2="128" y2="128">
+        <stop offset="0%" stop-color="#6366F1"/>
+        <stop offset="50%" stop-color="#8B5CF6"/>
+        <stop offset="100%" stop-color="#D946EF"/>
+      </linearGradient>
+      <linearGradient id="accentGradient" x1="42" y1="28" x2="86" y2="86">
+        <stop offset="0%" stop-color="#818CF8"/>
+        <stop offset="100%" stop-color="#C084FC"/>
+      </linearGradient>
+    </defs>
+  </svg>

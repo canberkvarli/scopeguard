@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      width: 380px;
+      min-height: 500px;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+    }
+    
+    .header {
+      padding: 20px;
+      background: rgba(99, 102, 241, 0.1);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      position: relative;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .logo-icon {
+      font-size: 24px;
+    }
+    
+    .logo-text {
+      font-size: 20px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .status {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    
+    .status.connected {
+      color: #10b981;
+    }
+    
+    .logout-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 6px 10px;
+      font-size: 12px;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      transform: scale(1.05);
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    
+    .email-list {
+      margin-top: 20px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    
+    .email-item {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border-left: 3px solid #10b981;
+    }
+    
+    .email-item.scope-creep {
+      border-left-color: #ef4444;
+    }
+    
+    .email-subject {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    
+    .email-from {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">🛡️</span>
+      <span class="logo-text">ScopeGuard</span>
+    </div>
+    <div class="status" id="status">Not connected</div>
+    <button class="logout-btn" id="logout-btn" style="display: none;" title="Disconnect Gmail">⏻</button>
+  </div>
+  
+  <div class="content">
+    <div id="auth-section">
+      <button class="btn btn-primary" id="connect-btn">
+        Connect Gmail
+      </button>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 10px; text-align: center;">
+        🔒 Read-only access • Your data stays private
+      </p>
+    </div>
+    
+    <div id="dashboard" style="display: none;">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="total-analyzed">0</div>
+          <div class="stat-label">Analyzed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="scope-creep-count" style="color: #ef4444;">0</div>
+          <div class="stat-label">Scope Creep</div>
+        </div>
+      </div>
+      
+      <div class="email-list" id="email-list"></div>
+      
+      <button class="btn btn-primary" id="analyze-btn" style="margin-top: 15px;">
+        Analyze Latest Emails
+      </button>
+    </div>
+    
+    <div id="loading" style="display: none;">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div>Analyzing with AI...</div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
