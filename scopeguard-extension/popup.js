@@ -21,6 +21,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Logout button
   document.getElementById('logout-btn')?.addEventListener('click', logout);
+  
+  // Test button
+  document.getElementById('test-btn')?.addEventListener('click', testGmailConnection);
+  
+  // Setup button
+  document.getElementById('setup-btn')?.addEventListener('click', setupApiKey);
 });
 
 async function authenticate() {
@@ -42,8 +48,8 @@ async function analyzeEmails() {
   showLoading();
   
   try {
-    // Get emails
-    chrome.runtime.sendMessage({ action: 'getEmails', maxResults: 5 }, async (response) => {
+    // Get work-related emails only
+    chrome.runtime.sendMessage({ action: 'getEmails', query: 'is:unread', maxResults: 10 }, async (response) => {
       console.log('Gmail response:', response);
       
       if (!response.success) {
@@ -66,6 +72,7 @@ async function analyzeEmails() {
       // Analyze each email with AI
       for (const email of emails) {
         console.log('Analyzing email:', email.subject);
+        console.log('Email data:', email);
         
         try {
           const analysisResponse = await new Promise(resolve => {
@@ -75,15 +82,32 @@ async function analyzeEmails() {
           console.log('Analysis response:', analysisResponse);
           
           if (analysisResponse.success) {
+            console.log('✅ Analysis successful for:', email.subject);
             analyzedEmails.push({
               ...email,
               ...analysisResponse.analysis
             });
           } else {
-            console.error('Analysis failed for email:', email.subject, analysisResponse.error);
+            console.error('❌ Analysis failed for email:', email.subject, analysisResponse.error);
+            // Add failed email with error info
+            analyzedEmails.push({
+              ...email,
+              isScopeCreep: false,
+              confidence: "error",
+              reason: `Analysis failed: ${analysisResponse.error}`,
+              suggestedResponse: "Unable to analyze this email"
+            });
           }
         } catch (error) {
-          console.error('Error analyzing email:', error);
+          console.error('❌ Error analyzing email:', error);
+          // Add failed email with error info
+          analyzedEmails.push({
+            ...email,
+            isScopeCreep: false,
+            confidence: "error", 
+            reason: `Error: ${error.message}`,
+            suggestedResponse: "Unable to analyze this email"
+          });
         }
       }
       
@@ -138,6 +162,47 @@ function showLoading() {
 
 function hideLoading() {
   document.getElementById('loading').style.display = 'none';
+}
+
+async function testGmailConnection() {
+  console.log('Testing Gmail connection...');
+  
+  // Test 1: Check if we have auth token
+  const stored = await chrome.storage.local.get(['authToken']);
+  console.log('Auth token exists:', !!stored.authToken);
+  
+  if (!stored.authToken) {
+    alert('❌ No auth token found. Please connect to Gmail first.');
+    return;
+  }
+  
+  // Test 2: Try to fetch just 1 work-related email
+  chrome.runtime.sendMessage({ action: 'getEmails', query: 'is:unread', maxResults: 1 }, (response) => {
+    console.log('Gmail API test response:', response);
+    
+    if (response.success) {
+      const emailCount = response.messages ? response.messages.length : 0;
+      alert(`✅ Gmail connection working!\n\nFound ${emailCount} email(s)\n\nFirst email subject: ${response.messages?.[0]?.subject || 'N/A'}`);
+    } else {
+      alert(`❌ Gmail API failed:\n\n${response.error || 'Unknown error'}`);
+    }
+  });
+}
+
+async function setupApiKey() {
+  const apiKey = prompt('Enter your Groq API Key:\n\n1. Go to https://console.groq.com/\n2. Create a free account\n3. Get your API key (starts with gsk_)\n4. Paste it here:');
+  
+  if (apiKey && apiKey.startsWith('gsk_')) {
+    chrome.runtime.sendMessage({ action: 'setApiKey', apiKey }, (response) => {
+      if (response.success) {
+        alert('✅ API Key saved successfully!\n\nYou can now analyze emails with AI.');
+      } else {
+        alert('❌ Failed to save API key. Please try again.');
+      }
+    });
+  } else if (apiKey) {
+    alert('❌ Invalid API key format. Groq API keys start with "gsk_"');
+  }
 }
 
 async function logout() {
