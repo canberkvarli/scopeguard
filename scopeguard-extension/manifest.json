@@ -15,6 +15,7 @@
       "client_id": "463544145253-i3evjem0fuesv8k5u8cqmunhduj21nec.apps.googleusercontent.com",
       "scopes": [
         "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/userinfo.email"
       ]
     },

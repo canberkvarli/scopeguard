@@ -1,208 +1,258 @@
 let isAuthenticated = false;
+let isMonitoring = true;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Show auth section by default
+  showAuthSection();
+  
   // Check if already authenticated
-  const stored = await chrome.storage.local.get(['authToken', 'analyzedEmails']);
+  const stored = await chrome.storage.local.get(['authToken', 'scopeCreepAlerts', 'groqApiKey', 'isMonitoring']);
   
   if (stored.authToken) {
     isAuthenticated = true;
+    isMonitoring = stored.isMonitoring !== false; // Default to true
     showDashboard();
     
-    if (stored.analyzedEmails) {
-      displayEmails(stored.analyzedEmails);
+    // Start automatic monitoring if enabled
+    if (isMonitoring) {
+      startAutomaticMonitoring();
     }
   }
   
   // Connect button
-  document.getElementById('connect-btn').addEventListener('click', authenticate);
+  const connectBtn = document.getElementById('connect-btn');
+  if (connectBtn) {
+    connectBtn.addEventListener('click', () => {
+      console.log('🔘 Connect button clicked!');
+      authenticate();
+    });
+  }
   
-  // Analyze button
-  document.getElementById('analyze-btn').addEventListener('click', analyzeEmails);
+  // Main toggle button
+  const mainToggle = document.getElementById('main-toggle');
+  if (mainToggle) {
+    mainToggle.addEventListener('click', toggleMonitoring);
+  }
   
   // Logout button
   document.getElementById('logout-btn')?.addEventListener('click', logout);
   
-  // Test button
-  document.getElementById('test-btn')?.addEventListener('click', testGmailConnection);
-  
-  // Setup button
-  document.getElementById('setup-btn')?.addEventListener('click', setupApiKey);
+  // Debug button
+  document.getElementById('debug-btn')?.addEventListener('click', debugScan);
 });
 
 async function authenticate() {
-  showLoading();
-  
-  chrome.runtime.sendMessage({ action: 'authenticate' }, (response) => {
-    if (response.success) {
-      isAuthenticated = true;
-      showDashboard();
-      analyzeEmails();
-    } else {
-      alert('Authentication failed. Please try again.');
-      hideLoading();
-    }
-  });
-}
-
-async function analyzeEmails() {
-  showLoading();
+  console.log('🔐 Starting authentication...');
+  showLoading('Connecting to Gmail...');
   
   try {
-    // Get work-related emails only
-    chrome.runtime.sendMessage({ action: 'getEmails', query: 'is:unread', maxResults: 10 }, async (response) => {
-      console.log('Gmail response:', response);
+    chrome.runtime.sendMessage({ action: 'authenticate' }, (response) => {
+      console.log('🔐 Authentication response:', response);
       
-      if (!response.success) {
-        alert(`Failed to fetch emails: ${response.error || 'Unknown error'}`);
+      if (chrome.runtime.lastError) {
+        console.error('🔐 Chrome runtime error:', chrome.runtime.lastError);
+        alert(`❌ Authentication failed:\n\n${chrome.runtime.lastError.message}\n\nThis might be due to:\n• Popup blockers\n• OAuth configuration issues\n• Extension permissions`);
         hideLoading();
+        showAuthSection();
         return;
       }
       
-      const emails = response.messages;
-      console.log('Fetched emails:', emails);
-      
-      if (!emails || emails.length === 0) {
-        alert('No emails found. Make sure you have emails in your Gmail inbox.');
+      if (response && response.success) {
+        console.log('✅ Authentication successful!');
+        isAuthenticated = true;
+        isMonitoring = true;
+        showDashboard();
+        startAutomaticMonitoring();
+      } else {
+        console.error('❌ Authentication failed:', response);
+        const errorMsg = response?.error?.message || response?.error || 'Unknown error';
+        alert(`❌ Authentication failed:\n\n${errorMsg}\n\nPlease check:\n• OAuth client ID in manifest.json\n• Extension permissions\n• Try refreshing the extension`);
         hideLoading();
-        return;
+        showAuthSection();
       }
-      
-      const analyzedEmails = [];
-      
-      // Analyze each email with AI
-      for (const email of emails) {
-        console.log('Analyzing email:', email.subject);
-        console.log('Email data:', email);
-        
-        try {
-          const analysisResponse = await new Promise(resolve => {
-            chrome.runtime.sendMessage({ action: 'analyzeEmail', email }, resolve);
-          });
-          
-          console.log('Analysis response:', analysisResponse);
-          
-          if (analysisResponse.success) {
-            console.log('✅ Analysis successful for:', email.subject);
-            analyzedEmails.push({
-              ...email,
-              ...analysisResponse.analysis
-            });
-          } else {
-            console.error('❌ Analysis failed for email:', email.subject, analysisResponse.error);
-            // Add failed email with error info
-            analyzedEmails.push({
-              ...email,
-              isScopeCreep: false,
-              confidence: "error",
-              reason: `Analysis failed: ${analysisResponse.error}`,
-              suggestedResponse: "Unable to analyze this email"
-            });
-          }
-        } catch (error) {
-          console.error('❌ Error analyzing email:', error);
-          // Add failed email with error info
-          analyzedEmails.push({
-            ...email,
-            isScopeCreep: false,
-            confidence: "error", 
-            reason: `Error: ${error.message}`,
-            suggestedResponse: "Unable to analyze this email"
-          });
-        }
-      }
-      
-      console.log('Final analyzed emails:', analyzedEmails);
-      
-      // Save results
-      await chrome.storage.local.set({ analyzedEmails });
-      
-      displayEmails(analyzedEmails);
-      hideLoading();
-      showDashboard();
     });
   } catch (error) {
-    console.error('Error in analyzeEmails:', error);
-    alert(`Error analyzing emails: ${error.message}`);
+    console.error('🔐 Authentication error:', error);
+    alert(`❌ Authentication error:\n\n${error.message}`);
     hideLoading();
+    showAuthSection();
   }
 }
 
-function displayEmails(emails) {
-  const emailList = document.getElementById('email-list');
-  const totalAnalyzed = document.getElementById('total-analyzed');
-  const scopeCreepCount = document.getElementById('scope-creep-count');
+function showAuthSection() {
+  document.getElementById('auth-section').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
+}
+
+function toggleMonitoring() {
+  isMonitoring = !isMonitoring;
+  updateToggleDisplay();
   
-  totalAnalyzed.textContent = emails.length;
-  scopeCreepCount.textContent = emails.filter(e => e.isScopeCreep).length;
+  // Save monitoring state
+  chrome.storage.local.set({ isMonitoring });
   
-  emailList.innerHTML = emails.map(email => `
-    <div class="email-item ${email.isScopeCreep ? 'scope-creep' : ''}">
-      <div class="email-subject">
-        ${email.isScopeCreep ? '⚠️' : '✓'} ${email.subject}
-      </div>
-      <div class="email-from">${email.from}</div>
-      ${email.isScopeCreep ? `<div style="margin-top: 8px; font-size: 12px; color: #fca5a5;">${email.reason}</div>` : ''}
-    </div>
-  `).join('');
+  if (isMonitoring) {
+    console.log('🟢 Monitoring enabled - starting automatic scan');
+    updateStatusText('Starting monitoring...');
+    startAutomaticMonitoring();
+  } else {
+    console.log('🔴 Monitoring disabled');
+    updateStatusText('Monitoring disabled');
+    // Clear any existing alerts when disabled
+    chrome.storage.local.set({ scopeCreepAlerts: [] });
+    updateExtensionBadge(0);
+  }
+}
+
+function updateToggleDisplay() {
+  const toggle = document.getElementById('main-toggle');
+  const toggleText = document.getElementById('toggle-text');
+  
+  if (isMonitoring) {
+    toggle.className = 'main-toggle active';
+    toggleText.textContent = 'ON';
+  } else {
+    toggle.className = 'main-toggle inactive';
+    toggleText.textContent = 'OFF';
+  }
+}
+
+function updateStatusText(text) {
+  const statusText = document.getElementById('status-text');
+  statusText.textContent = text;
+}
+
+function startAutomaticMonitoring() {
+  if (!isMonitoring) return;
+  
+  console.log('🔄 Starting automatic monitoring...');
+  updateStatusText('Scanning emails...');
+  
+  // Scan emails immediately
+  scanEmails();
+  
+  // Set up periodic scanning every 30 seconds for real-time detection
+  setInterval(() => {
+    if (isMonitoring) {
+      console.log('🔄 Periodic scan triggered');
+      scanEmails();
+    }
+  }, 30 * 1000); // 30 seconds
+}
+
+async function scanEmails() {
+  if (!isMonitoring) return;
+  
+  try {
+    updateStatusText('Scanning emails...');
+    
+    // First check if we have an API key
+    chrome.runtime.sendMessage({ action: 'getGroqApiKey' }, (apiResponse) => {
+      console.log('API key check response:', apiResponse);
+      
+      if (!apiResponse || !apiResponse.apiKey) {
+        console.log('❌ No API key configured - skipping scan');
+        updateStatusText('API key needed');
+        return;
+      }
+      
+      // Get very recent emails for AI analysis (last 2 hours)
+      chrome.runtime.sendMessage({ action: 'getEmails', query: 'in:inbox newer_than:2h', maxResults: 5 }, async (response) => {
+        console.log('Gmail response:', response);
+        
+        if (!response.success) {
+          console.error('❌ Failed to fetch emails:', response.error);
+          updateStatusText('Email scan failed');
+          return;
+        }
+        
+        const emails = response.messages;
+        console.log('Fetched emails:', emails);
+        
+        if (!emails || emails.length === 0) {
+          updateStatusText('No new emails');
+          return;
+        }
+        
+        updateStatusText(`Analyzing ${emails.length} emails...`);
+        const scopeCreepAlerts = [];
+        
+        // Analyze each email with AI for work-related content and scope creep
+        for (const email of emails) {
+          console.log('Analyzing email:', email.subject);
+          
+          try {
+            const analysisResponse = await new Promise(resolve => {
+              chrome.runtime.sendMessage({ 
+                action: 'analyzeWorkEmail', 
+                email, 
+                enabledPlatforms: { fiverr: true, upwork: true, contra: true, freelancer: true } // Always monitor all platforms
+              }, resolve);
+            });
+            
+            console.log('Analysis response:', analysisResponse);
+            
+            if (analysisResponse.success && analysisResponse.analysis.isWorkEmail && analysisResponse.analysis.isScopeCreep) {
+              console.log('⚠️ Scope creep detected in:', email.subject);
+              scopeCreepAlerts.push({
+                ...email,
+                ...analysisResponse.analysis
+              });
+            }
+          } catch (error) {
+            console.error('❌ Error analyzing email:', error);
+          }
+        }
+        
+        console.log('Scope creep alerts:', scopeCreepAlerts);
+        
+        // Save results
+        await chrome.storage.local.set({ scopeCreepAlerts });
+        
+        // Update extension badge
+        updateExtensionBadge(scopeCreepAlerts.length);
+        
+        // Update status
+        if (scopeCreepAlerts.length > 0) {
+          updateStatusText(`${scopeCreepAlerts.length} scope creep alerts`);
+        } else {
+          updateStatusText('No scope creep detected');
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error in scanEmails:', error);
+    updateStatusText('Scan error');
+  }
 }
 
 function showDashboard() {
+  console.log('📊 Showing dashboard...');
   document.getElementById('auth-section').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
-  document.getElementById('status').textContent = '✓ Connected';
-  document.getElementById('status').classList.add('connected');
+  document.getElementById('dashboard').style.display = 'flex';
+  document.getElementById('loading').style.display = 'none';
   document.getElementById('logout-btn').style.display = 'block';
+  
+  // Update toggle display
+  updateToggleDisplay();
 }
 
-function showLoading() {
+function showLoading(message = 'Connecting...') {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('auth-section').style.display = 'none';
+  
+  // Update loading message
+  const loadingDiv = document.getElementById('loading').querySelector('div:last-child');
+  if (loadingDiv) {
+    loadingDiv.textContent = message;
+  }
 }
 
 function hideLoading() {
   document.getElementById('loading').style.display = 'none';
-}
-
-async function testGmailConnection() {
-  console.log('Testing Gmail connection...');
-  
-  // Test 1: Check if we have auth token
-  const stored = await chrome.storage.local.get(['authToken']);
-  console.log('Auth token exists:', !!stored.authToken);
-  
-  if (!stored.authToken) {
-    alert('❌ No auth token found. Please connect to Gmail first.');
-    return;
-  }
-  
-  // Test 2: Try to fetch just 1 work-related email
-  chrome.runtime.sendMessage({ action: 'getEmails', query: 'is:unread', maxResults: 1 }, (response) => {
-    console.log('Gmail API test response:', response);
-    
-    if (response.success) {
-      const emailCount = response.messages ? response.messages.length : 0;
-      alert(`✅ Gmail connection working!\n\nFound ${emailCount} email(s)\n\nFirst email subject: ${response.messages?.[0]?.subject || 'N/A'}`);
-    } else {
-      alert(`❌ Gmail API failed:\n\n${response.error || 'Unknown error'}`);
-    }
-  });
-}
-
-async function setupApiKey() {
-  const apiKey = prompt('Enter your Groq API Key:\n\n1. Go to https://console.groq.com/\n2. Create a free account\n3. Get your API key (starts with gsk_)\n4. Paste it here:');
-  
-  if (apiKey && apiKey.startsWith('gsk_')) {
-    chrome.runtime.sendMessage({ action: 'setApiKey', apiKey }, (response) => {
-      if (response.success) {
-        alert('✅ API Key saved successfully!\n\nYou can now analyze emails with AI.');
-      } else {
-        alert('❌ Failed to save API key. Please try again.');
-      }
-    });
-  } else if (apiKey) {
-    alert('❌ Invalid API key format. Groq API keys start with "gsk_"');
-  }
 }
 
 async function logout() {
@@ -214,16 +264,80 @@ async function logout() {
     chrome.runtime.sendMessage({ action: 'logout' }, () => {
       // Reset UI
       isAuthenticated = false;
-      document.getElementById('auth-section').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('status').textContent = 'Not connected';
-      document.getElementById('status').classList.remove('connected');
-      document.getElementById('logout-btn').style.display = 'none';
+      isMonitoring = false;
+      showAuthSection();
       
-      // Clear email list
-      document.getElementById('email-list').innerHTML = '';
-      document.getElementById('total-analyzed').textContent = '0';
-      document.getElementById('scope-creep-count').textContent = '0';
+      // Clear badge
+      chrome.action.setBadgeText({ text: '' });
     });
+  }
+}
+
+function updateExtensionBadge(count) {
+  if (count > 0) {
+    chrome.action.setBadgeText({ text: count.toString() });
+    chrome.action.setBadgeBackgroundColor({ color: '#ef4444' }); // Red background
+  } else {
+    chrome.action.setBadgeText({ text: '' }); // Clear badge
+  }
+}
+
+async function debugScan() {
+  updateStatusText('Debug scan running...');
+  
+  try {
+    // Get recent emails with more details
+    chrome.runtime.sendMessage({ action: 'getEmails', query: 'in:inbox newer_than:1d', maxResults: 10 }, async (response) => {
+      if (!response.success) {
+        alert(`❌ Failed to fetch emails: ${response.error}`);
+        return;
+      }
+      
+      const emails = response.messages;
+      if (!emails || emails.length === 0) {
+        alert('📧 No emails found in the last day');
+        return;
+      }
+      
+      let debugInfo = `🔧 Debug Scan Results:\n\nFound ${emails.length} emails:\n\n`;
+      
+      for (let i = 0; i < Math.min(emails.length, 5); i++) {
+        const email = emails[i];
+        debugInfo += `${i + 1}. From: ${email.from}\n`;
+        debugInfo += `   Subject: ${email.subject}\n`;
+        debugInfo += `   Body: ${email.body.substring(0, 100)}...\n\n`;
+        
+        // Analyze this email
+        try {
+          const analysisResponse = await new Promise(resolve => {
+            chrome.runtime.sendMessage({ 
+              action: 'analyzeWorkEmail', 
+              email, 
+              enabledPlatforms: { fiverr: true, upwork: true, contra: true, freelancer: true }
+            }, resolve);
+          });
+          
+          if (analysisResponse.success) {
+            const analysis = analysisResponse.analysis;
+            debugInfo += `   AI Analysis:\n`;
+            debugInfo += `   - Work Email: ${analysis.isWorkEmail}\n`;
+            debugInfo += `   - Scope Creep: ${analysis.isScopeCreep}\n`;
+            debugInfo += `   - Confidence: ${analysis.confidence}\n`;
+            debugInfo += `   - Reason: ${analysis.reason}\n\n`;
+          } else {
+            debugInfo += `   AI Analysis: FAILED - ${analysisResponse.error}\n\n`;
+          }
+        } catch (error) {
+          debugInfo += `   AI Analysis: ERROR - ${error.message}\n\n`;
+        }
+      }
+      
+      alert(debugInfo);
+      updateStatusText('Debug scan completed');
+    });
+  } catch (error) {
+    console.error('Debug scan error:', error);
+    alert(`❌ Debug scan failed: ${error.message}`);
+    updateStatusText('Debug scan failed');
   }
 }

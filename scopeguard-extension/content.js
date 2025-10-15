@@ -1,6 +1,9 @@
 // Content script that runs on Gmail pages
 console.log('ScopeGuard: Monitoring Gmail...');
 
+let lastEmailCount = 0;
+let isAnalyzing = false;
+
 // Add ScopeGuard indicator to emails
 function addScopeGuardBadges() {
   const emailRows = document.querySelectorAll('tr.zA');
@@ -21,9 +24,30 @@ function addScopeGuardBadges() {
   });
 }
 
+// Check for new emails and trigger analysis
+function checkForNewEmails() {
+  if (isAnalyzing) return;
+  
+  const emailRows = document.querySelectorAll('tr.zA');
+  const currentEmailCount = emailRows.length;
+  
+  if (currentEmailCount > lastEmailCount) {
+    console.log('📧 New emails detected! Triggering analysis...');
+    lastEmailCount = currentEmailCount;
+    
+    // Notify background script to scan for new emails
+    chrome.runtime.sendMessage({ action: 'scanNewEmails' }, (response) => {
+      if (response && response.success) {
+        console.log('✅ New email analysis completed');
+      }
+    });
+  }
+}
+
 // Monitor for new emails
 const observer = new MutationObserver(() => {
   addScopeGuardBadges();
+  checkForNewEmails();
 });
 
 observer.observe(document.body, {
@@ -31,5 +55,9 @@ observer.observe(document.body, {
   subtree: true
 });
 
-// Initial badge addition
-setTimeout(addScopeGuardBadges, 1000);
+// Initial setup
+setTimeout(() => {
+  addScopeGuardBadges();
+  const emailRows = document.querySelectorAll('tr.zA');
+  lastEmailCount = emailRows.length;
+}, 1000);
