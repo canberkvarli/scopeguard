@@ -22,6 +22,11 @@ export async function GET() {
   const projects = await prisma.project.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
+    include: {
+      emails: {
+        orderBy: { receivedAt: "desc" }
+      }
+    }
   })
 
   return NextResponse.json(projects)
