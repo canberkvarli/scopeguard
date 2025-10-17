@@ -1,426 +1,581 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertTriangle, Shield, CheckCircle, DollarSign, Clock, TrendingUp, ArrowRight, Sparkles, BarChart3, Bell, Lock, Eye, Database, Chrome } from 'lucide-react';
+import React, { useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 // Type definitions
-interface LandingPageProps {
-  onNavigate: (page: string) => void;
+interface Project {
+  id: number;
+  projectName: string;
+  clientName: string;
+  deliverables: string;
+  revisions: string;
+  timeline: string;
+  outOfScope: string;
+  createdAt: Date;
 }
 
-interface PricingPageProps {
-  onNavigate: (page: string) => void;
+interface ProjectData {
+  projectName: string;
+  clientName: string;
+  deliverables: string;
+  revisions: string;
+  timeline: string;
+  outOfScope: string;
 }
 
-// ============= LANDING PAGE =============
-const LandingPage = ({ onNavigate }: LandingPageProps) => (
-  <div className="min-h-screen bg-slate-950 relative overflow-hidden font-['Inter',sans-serif]">
-    {/* Animated background gradients */}
-    <div className="absolute inset-0 overflow-hidden">
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute top-60 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
-      <div className="absolute -bottom-40 right-1/3 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
-    </div>
+// Simple elegant SVG icons
+const Icons = {
+  Shield: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 1L3 5v7c0 6 9 10 9 10s9-4 9-10V5l-9-4z"/>
+    </svg>
+  ),
+  Arrow: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M5 12h14M12 5l7 7-7 7"/>
+    </svg>
+  ),
+  Plus: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  ),
+  LogOut: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 8l3-3m0 0l-3-3m3 3v12"/>
+    </svg>
+  ),
+  Check: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+  ),
+  Alert: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 2L2 20h20L12 2zm0 7v4m0 4v.01"/>
+    </svg>
+  ),
+  Lock: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-8-4V6a2 2 0 0 1 4 0v1"/>
+    </svg>
+  ),
+  Database: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
+    </svg>
+  ),
+  Eye: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  Back: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>
+  ),
+};
 
-    {/* Header */}
-    <nav className="relative bg-slate-900/50 backdrop-blur-xl border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Shield className="text-indigo-400" size={36} />
-            <div className="absolute inset-0 blur-lg bg-indigo-400/30"></div>
-          </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            ScopeGuard
-          </span>
-        </div>
-        <div className="flex items-center gap-6">
-          <a href="#privacy" className="text-slate-300 hover:text-white font-medium transition-colors">
-            Privacy
-          </a>
-          <button 
-            onClick={() => onNavigate('pricing')}
-            className="text-slate-300 hover:text-white font-medium transition-colors"
-          >
-            Pricing
-          </button>
-        </div>
-      </div>
-    </nav>
-
-    {/* Hero */}
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-      <div className="text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center bg-gradient-to-r from-indigo-500/10 to-purple-500/10 backdrop-blur-xl border border-indigo-500/20 rounded-full px-5 py-2 mb-8 group hover:border-indigo-500/40 transition-all">
-          <Sparkles className="text-indigo-400 mr-2" size={18} />
-          <span className="text-indigo-300 font-medium text-sm">AI-Powered Chrome Extension</span>
-        </div>
-        
-        {/* Main heading */}
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-          <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-            Stop Losing
-          </span>
-          <br />
-          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            $500/Month
-          </span>
-          <br />
-          <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-            to Scope Creep
-          </span>
-        </h1>
-        
-        <p className="text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
-          Chrome extension that uses AI to catch scope creep in your Gmail. 
-          <span className="text-indigo-300"> Works right where you read emails. Private & secure.</span>
-        </p>
-
-        {/* CTA Button */}
-        <div className="relative inline-block group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-500"></div>
-          <a
-            href="https://chrome.google.com/webstore"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-5 rounded-xl text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition-all duration-200 inline-flex items-center gap-3"
-          >
-            <Chrome size={24} />
-            Install Chrome Extension
-            <ArrowRight size={20} />
-          </a>
-        </div>
-
-        <p className="text-slate-500 mt-5 text-sm">Free forever • No credit card • Installs in 30 seconds</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid md:grid-cols-3 gap-6 mt-24">
-        <div className="group bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 hover:border-indigo-500/50 transition-all duration-300">
-          <div className="relative inline-block mb-5">
-            <DollarSign className="text-green-400 transition-transform duration-300 group-hover:scale-110" size={44} />
-            <div className="absolute inset-0 blur-xl bg-green-400/30 group-hover:bg-green-400/50 transition-all"></div>
-          </div>
-          <div className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent mb-3">
-            $500/mo
-          </div>
-          <p className="text-slate-400">Average lost to scope creep by freelancers</p>
-        </div>
-        
-        <div className="group bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 hover:border-indigo-500/50 transition-all duration-300">
-          <div className="relative inline-block mb-5">
-            <Clock className="text-blue-400 transition-transform duration-300 group-hover:scale-110" size={44} />
-            <div className="absolute inset-0 blur-xl bg-blue-400/30 group-hover:bg-blue-400/50 transition-all"></div>
-          </div>
-          <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-3">
-            10 hrs/wk
-          </div>
-          <p className="text-slate-400">Wasted on unpaid scope creep work</p>
-        </div>
-        
-        <div className="group bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 hover:border-indigo-500/50 transition-all duration-300">
-          <div className="relative inline-block mb-5">
-            <TrendingUp className="text-purple-400 transition-transform duration-300 group-hover:scale-110" size={44} />
-            <div className="absolute inset-0 blur-xl bg-purple-400/30 group-hover:bg-purple-400/50 transition-all"></div>
-          </div>
-          <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3">
-            57M
-          </div>
-          <p className="text-slate-400">US freelancers affected by this problem</p>
-        </div>
-      </div>
-
-      {/* How it works */}
-      <div className="mt-32">
-        <h2 className="text-4xl font-bold text-center mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-          How It Works
-        </h2>
-        <p className="text-center text-slate-400 mb-16 text-lg">Three simple steps to protect your income</p>
-        
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all"></div>
-            <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 text-center group-hover:border-indigo-500/50 transition-all duration-300">
-              <div className="relative inline-block mb-6">
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform duration-300">
-                  <Chrome className="text-white" size={36} />
-                </div>
-                <div className="absolute inset-0 blur-xl bg-indigo-500/30 group-hover:bg-indigo-500/50 transition-all"></div>
-              </div>
-              <div className="text-sm font-bold text-indigo-400 mb-3 tracking-wider">STEP 01</div>
-              <h3 className="text-2xl font-bold mb-3 text-white">Install Extension</h3>
-              <p className="text-slate-400 leading-relaxed">One-click install from Chrome Web Store. Takes 30 seconds.</p>
-            </div>
-          </div>
-          
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all"></div>
-            <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 text-center group-hover:border-purple-500/50 transition-all duration-300">
-              <div className="relative inline-block mb-6">
-                <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform duration-300">
-                  <AlertTriangle className="text-white" size={36} />
-                </div>
-                <div className="absolute inset-0 blur-xl bg-purple-500/30 group-hover:bg-purple-500/50 transition-all"></div>
-              </div>
-              <div className="text-sm font-bold text-purple-400 mb-3 tracking-wider">STEP 02</div>
-              <h3 className="text-2xl font-bold mb-3 text-white">AI Detects Creep</h3>
-              <p className="text-slate-400 leading-relaxed">AI analyzes emails as you read them in Gmail</p>
-            </div>
-          </div>
-          
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-indigo-500/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all"></div>
-            <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 text-center group-hover:border-pink-500/50 transition-all duration-300">
-              <div className="relative inline-block mb-6">
-                <div className="bg-gradient-to-br from-pink-500 to-indigo-600 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform duration-300">
-                  <CheckCircle className="text-white" size={36} />
-                </div>
-                <div className="absolute inset-0 blur-xl bg-pink-500/30 group-hover:bg-pink-500/50 transition-all"></div>
-              </div>
-              <div className="text-sm font-bold text-pink-400 mb-3 tracking-wider">STEP 03</div>
-              <h3 className="text-2xl font-bold mb-3 text-white">Get Paid More</h3>
-              <p className="text-slate-400 leading-relaxed">Copy AI-generated responses to charge fairly</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Privacy Section */}
-      <div className="mt-32" id="privacy">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center bg-green-500/10 border border-green-500/20 rounded-full px-5 py-2 mb-6">
-            <Shield className="text-green-400 mr-2" size={18} />
-            <span className="text-green-300 font-medium text-sm">Privacy First</span>
-          </div>
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            Your Privacy Matters
-          </h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            We built ScopeGuard with privacy at its core. Your emails stay yours.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 text-center hover:border-green-500/50 transition-all duration-300">
-            <div className="relative inline-block mb-6">
-              <Lock className="text-green-400 mx-auto" size={48} />
-              <div className="absolute inset-0 blur-xl bg-green-400/20"></div>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-3">Read-Only Access</h3>
-            <p className="text-slate-400 leading-relaxed">
-              We never send, delete, or modify your emails. The extension only reads to analyze - nothing else.
-            </p>
-          </div>
-          
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 text-center hover:border-green-500/50 transition-all duration-300">
-            <div className="relative inline-block mb-6">
-              <Database className="text-green-400 mx-auto" size={48} />
-              <div className="absolute inset-0 blur-xl bg-green-400/20"></div>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-3">No Data Storage</h3>
-            <p className="text-slate-400 leading-relaxed">
-              Emails are analyzed in real-time using AI and immediately discarded. We don&apos;t store any email content.
-            </p>
-          </div>
-          
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 text-center hover:border-green-500/50 transition-all duration-300">
-            <div className="relative inline-block mb-6">
-              <Eye className="text-green-400 mx-auto" size={48} />
-              <div className="absolute inset-0 blur-xl bg-green-400/20"></div>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-3">You Control Access</h3>
-            <p className="text-slate-400 leading-relaxed">
-              Revoke permissions anytime from your Google account. One click and we&apos;re gone.
-            </p>
-          </div>
-        </div>
-
-        {/* Additional Privacy Details */}
-        <div className="mt-12 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-2xl p-8 backdrop-blur-xl">
-          <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Shield className="text-green-400" size={20} />
-            How We Handle Your Data
-          </h4>
-          <div className="grid md:grid-cols-2 gap-6 text-slate-300 text-sm">
-            <div>
-              <p className="mb-3">
-                <strong className="text-white">✓ Processed Locally:</strong> AI analysis happens through secure API calls. Your email content is sent only to Claude AI for analysis.
-              </p>
-              <p className="mb-3">
-                <strong className="text-white">✓ No Tracking:</strong> We don&apos;t track which emails you receive or who you communicate with.
-              </p>
-            </div>
-            <div>
-              <p className="mb-3">
-                <strong className="text-white">✓ Open Source Ready:</strong> Our extension code will be open-sourced so you can verify our privacy claims.
-              </p>
-              <p className="mb-3">
-                <strong className="text-white">✓ GDPR Compliant:</strong> We follow European privacy standards even if you&apos;re not in Europe.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features showcase */}
-      <div className="mt-32 grid md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 hover:border-indigo-500/50 transition-all duration-300">
-          <BarChart3 className="text-indigo-400 mb-4" size={32} />
-          <h3 className="text-xl font-bold text-white mb-3">Real-time Analysis</h3>
-          <p className="text-slate-400">AI powered by Claude Sonnet 4 analyzes emails as you read them, catching scope creep instantly.</p>
-        </div>
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 hover:border-indigo-500/50 transition-all duration-300">
-          <Bell className="text-purple-400 mb-4" size={32} />
-          <h3 className="text-xl font-bold text-white mb-3">Smart Responses</h3>
-          <p className="text-slate-400">Get AI-generated professional responses that help you charge for additional work politely.</p>
-        </div>
-      </div>
-
-      {/* Final CTA */}
-      <div className="mt-32 text-center">
-        <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-12 max-w-4xl mx-auto">
-          <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            Ready to Stop Losing Money?
-          </h3>
-          <p className="text-slate-400 mb-8 text-lg">Join freelancers protecting their income with AI</p>
-          <a
-            href="https://chrome.google.com/webstore"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition-all duration-200 inline-flex items-center gap-3"
-          >
-            <Chrome size={24} />
-            Install Free Extension
-            <ArrowRight size={20} />
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ============= PRICING PAGE =============
-const PricingPage = ({ onNavigate }: PricingPageProps) => (
-  <div className="min-h-screen bg-slate-950 font-['Inter',sans-serif]">
-    <nav className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <div 
-          className="flex items-center space-x-2 cursor-pointer"
-          onClick={() => onNavigate('landing')}
-        >
-          <Shield className="text-indigo-400" size={32} />
-          <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">ScopeGuard</span>
-        </div>
-      </div>
-    </nav>
-
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4">Simple, Honest Pricing</h1>
-        <p className="text-xl text-slate-400">Start free. Upgrade when you see value.</p>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Free Plan */}
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 hover:border-slate-700 transition-all">
-          <h3 className="text-2xl font-bold text-white mb-2">Free</h3>
-          <div className="mb-6">
-            <span className="text-4xl font-bold text-white">$0</span>
-            <span className="text-slate-400">/month</span>
-          </div>
-          <ul className="space-y-4 mb-8">
-            <li className="flex items-start">
-              <CheckCircle className="text-green-400 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-slate-300">10 emails analyzed per day</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="text-green-400 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-slate-300">AI scope creep detection</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="text-green-400 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-slate-300">Suggested responses</span>
-            </li>
-          </ul>
-          <a
-            href="https://chrome.google.com/webstore"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full bg-slate-700 text-white py-3 rounded-lg font-semibold hover:bg-slate-600 transition-colors text-center block"
-          >
-            Install Extension
-          </a>
-        </div>
-
-        {/* Pro Plan */}
-        <div className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 backdrop-blur-xl border-2 border-indigo-500/50 rounded-2xl p-8 relative hover:border-indigo-500/70 transition-all">
-          <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-1 rounded-bl-lg rounded-tr-2xl text-sm font-bold">
-            MOST POPULAR
-          </div>
-          <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
-          <div className="mb-6">
-            <span className="text-4xl font-bold text-white">$19</span>
-            <span className="text-slate-300">/month</span>
-          </div>
-          <ul className="space-y-4 mb-8">
-            <li className="flex items-start">
-              <CheckCircle className="text-indigo-300 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-white font-medium">Unlimited email analysis</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="text-indigo-300 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-white font-medium">Real-time alerts</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="text-indigo-300 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-white font-medium">Custom response templates</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="text-indigo-300 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-white font-medium">Analytics dashboard</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="text-indigo-300 mr-3 mt-1 flex-shrink-0" size={20} />
-              <span className="text-white font-medium">Priority support</span>
-            </li>
-          </ul>
-          <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
-            Coming Soon
-          </button>
-          <p className="text-center text-slate-400 text-sm mt-4">
-            Saves avg $500/month • Cancel anytime
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-12 text-center">
-        <p className="text-slate-400">
-          Questions? Email us at <span className="text-indigo-400">hello@scopeguard.app</span>
-        </p>
-      </div>
-    </div>
-  </div>
-);
-
-// ============= MAIN APP =============
-const ScopeGuard = () => {
+export default function ScopeGuard() {
+  const { data: session, status } = useSession();
   const [currentPage, setCurrentPage] = useState('landing');
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  // Set initial page based on authentication status
+  React.useEffect(() => {
+    if (status === 'authenticated') {
+      setCurrentPage('dashboard');
+    } else if (status === 'unauthenticated') {
+      setCurrentPage('landing');
+    }
+  }, [status]);
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
+  };
+
+  const handleCreateProject = (projectData: ProjectData) => {
+    setProjects([...projects, { id: Date.now(), ...projectData, createdAt: new Date() }]);
+    setCurrentPage('dashboard');
+  };
+
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page);
+  };
+
+  if (status === 'loading') {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div>
+        {currentPage === 'landing' && (
+          <LandingPage />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
-      {currentPage === 'landing' && (
-        <LandingPage 
-          onNavigate={setCurrentPage}
-        />
+      {currentPage === 'dashboard' && (
+        <DashboardPage projects={projects} onNavigate={handleNavigate} onLogout={handleLogout} userEmail={session?.user?.email || ''} />
       )}
-      {currentPage === 'pricing' && (
-        <PricingPage 
-          onNavigate={setCurrentPage}
-        />
+      {currentPage === 'create-project' && (
+        <CreateProjectPage onNavigate={handleNavigate} onCreate={handleCreateProject} />
+      )}
+      {currentPage.startsWith('project-') && (
+        <ProjectDetailPage projectId={parseInt(currentPage.split('-')[1])} projects={projects} onNavigate={handleNavigate} />
       )}
     </div>
   );
-};
+}
 
-export default ScopeGuard;
+// ============= LANDING PAGE =============
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-white font-['Inter',sans-serif]">
+      {/* Navigation */}
+      <nav className="border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center text-white">
+              <Icons.Shield />
+            </div>
+            <span className="text-2xl font-semibold text-slate-900">ScopeGuard</span>
+          </div>
+          <a
+            href="/auth/signin"
+            className="text-slate-600 hover:text-slate-900 font-medium transition-colors"
+          >
+            Sign In
+          </a>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <div className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-3xl">
+          <h1 className="text-6xl font-semibold text-slate-900 mb-6 leading-tight">
+            Stop losing money to scope creep
+          </h1>
+          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
+            Define your project scope once. Let AI protect your boundaries as client requests come in.
+          </p>
+          <a
+            href="/auth/signin"
+            className="bg-slate-900 text-white px-8 py-4 rounded-lg font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2 inline-block"
+          >
+            Get Started Free
+            <Icons.Arrow />
+          </a>
+          <p className="text-slate-500 mt-4 text-sm">No credit card required • Free forever tier</p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid md:grid-cols-3 gap-12 mt-24 py-12 border-t border-b border-slate-200">
+          <div>
+            <div className="text-4xl font-bold text-slate-900 mb-2">$500</div>
+            <p className="text-slate-600">Average lost monthly to scope creep</p>
+          </div>
+          <div>
+            <div className="text-4xl font-bold text-slate-900 mb-2">57M</div>
+            <p className="text-slate-600">Freelancers affected globally</p>
+          </div>
+          <div>
+            <div className="text-4xl font-bold text-slate-900 mb-2">10 hrs</div>
+            <p className="text-slate-600">Wasted weekly on unpaid work</p>
+          </div>
+        </div>
+
+        {/* How It Works */}
+        <div className="mt-24">
+          <h2 className="text-4xl font-semibold text-slate-900 mb-16">How it works</h2>
+          <div className="grid md:grid-cols-3 gap-12">
+            <div>
+              <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center mb-6">
+                <span className="text-lg font-semibold text-slate-900">1</span>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Define scope</h3>
+              <p className="text-slate-600">Write what&apos;s included in your project. Be specific about deliverables, revisions, and timelines.</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center mb-6">
+                <span className="text-lg font-semibold text-slate-900">2</span>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Share with client</h3>
+              <p className="text-slate-600">Get them to acknowledge they&apos;ve read and agreed to the scope before work starts.</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center mb-6">
+                <span className="text-lg font-semibold text-slate-900">3</span>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Get protected</h3>
+              <p className="text-slate-600">AI monitors incoming requests. When something&apos;s out of scope, get a polite response template ready.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Privacy Section */}
+        <div className="mt-24 bg-slate-50 p-12 rounded-lg border border-slate-200">
+          <h3 className="text-2xl font-semibold text-slate-900 mb-8">Your privacy matters</h3>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="flex gap-4">
+              <div className="w-6 h-6 text-slate-900 flex-shrink-0 mt-1">
+                <Icons.Lock />
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-2">Read-only access</h4>
+                <p className="text-slate-600 text-sm">We never modify your messages. Only analyze what you share.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-6 h-6 text-slate-900 flex-shrink-0 mt-1">
+                <Icons.Database />
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-2">No data storage</h4>
+                <p className="text-slate-600 text-sm">Messages analyzed in real-time. Never stored on our servers.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-6 h-6 text-slate-900 flex-shrink-0 mt-1">
+                <Icons.Eye />
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-2">You control access</h4>
+                <p className="text-slate-600 text-sm">Revoke permissions anytime. One click and we&apos;re gone.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ============= DASHBOARD PAGE =============
+function DashboardPage({ projects, onNavigate, onLogout, userEmail }: { projects: Project[]; onNavigate: (page: string) => void; onLogout: () => void; userEmail: string }) {
+  return (
+    <div className="min-h-screen bg-white font-['Inter',sans-serif]">
+      {/* Navigation */}
+      <nav className="border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center text-white">
+              <Icons.Shield />
+            </div>
+            <span className="text-xl font-semibold text-slate-900">ScopeGuard</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-slate-600 text-sm">{userEmail}</span>
+            <button
+              onClick={onLogout}
+              className="text-slate-600 hover:text-slate-900 font-medium transition-colors flex items-center gap-2"
+            >
+              <Icons.LogOut />
+              Sign out
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex justify-between items-start mb-12">
+          <div>
+            <h1 className="text-4xl font-semibold text-slate-900 mb-2">Your projects</h1>
+            <p className="text-slate-600">Manage your design projects and protect your scope</p>
+          </div>
+          <button
+            onClick={() => onNavigate('create-project')}
+            className="bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2"
+          >
+            <Icons.Plus />
+            New project
+          </button>
+        </div>
+
+        {projects.length === 0 ? (
+          <div className="text-center py-24 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="w-16 h-16 rounded-lg bg-slate-200 flex items-center justify-center mx-auto mb-4 text-slate-600">
+              <Icons.Shield />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">No projects yet</h3>
+            <p className="text-slate-600 mb-6">Create your first project to start protecting your scope</p>
+            <button
+              onClick={() => onNavigate('create-project')}
+              className="bg-slate-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-slate-800 transition-colors inline-flex items-center gap-2"
+            >
+              <Icons.Plus />
+              Create project
+            </button>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {projects.map((project: Project) => (
+              <div
+                key={project.id}
+                onClick={() => onNavigate(`project-${project.id}`)}
+                className="bg-white border border-slate-200 rounded-lg p-6 hover:border-slate-900 hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-slate-900">{project.projectName}</h3>
+                  <span className="bg-slate-100 text-slate-800 text-xs font-medium px-3 py-1 rounded-full">Active</span>
+                </div>
+                <p className="text-slate-600 text-sm mb-4">Client: {project.clientName}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-sm">View project</span>
+                  <Icons.Arrow />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============= CREATE PROJECT PAGE =============
+function CreateProjectPage({ onNavigate, onCreate }: { onNavigate: (page: string) => void; onCreate: (projectData: ProjectData) => void }) {
+  const [formData, setFormData] = useState({
+    projectName: '',
+    clientName: '',
+    deliverables: '',
+    revisions: '',
+    timeline: '',
+    outOfScope: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = () => {
+    if (formData.projectName && formData.clientName && formData.deliverables && formData.revisions && formData.timeline && formData.outOfScope) {
+      onCreate(formData);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white font-['Inter',sans-serif]">
+      {/* Navigation */}
+      <nav className="border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <button
+            onClick={() => onNavigate('dashboard')}
+            className="text-slate-600 hover:text-slate-900 font-medium transition-colors flex items-center gap-2"
+          >
+            <Icons.Back />
+            Back to projects
+          </button>
+        </div>
+      </nav>
+
+      {/* Form */}
+      <div className="max-w-2xl mx-auto px-6 py-12">
+        <div className="mb-12">
+          <h1 className="text-4xl font-semibold text-slate-900 mb-2">Create new project</h1>
+          <p className="text-slate-600">Define your scope clearly to protect yourself from creep</p>
+        </div>
+
+        <div className="space-y-8">
+          <div>
+            <label className="block text-sm font-semibold text-slate-900 mb-2">Project name</label>
+            <input
+              type="text"
+              name="projectName"
+              value={formData.projectName}
+              onChange={handleChange}
+              placeholder="E.g., Brand Redesign for TechCorp"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-900 mb-2">Client name</label>
+            <input
+              type="text"
+              name="clientName"
+              value={formData.clientName}
+              onChange={handleChange}
+              placeholder="E.g., John at TechCorp"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-900 mb-2">Deliverables (what&apos;s included)</label>
+            <textarea
+              name="deliverables"
+              value={formData.deliverables}
+              onChange={handleChange}
+              placeholder="List everything you&apos;ll deliver. E.g., 3 design concepts, 2 rounds of revisions, final files in Figma"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200 h-24"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-900 mb-2">Revisions included</label>
+            <input
+              type="text"
+              name="revisions"
+              value={formData.revisions}
+              onChange={handleChange}
+              placeholder="E.g., 2 rounds of unlimited revisions"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-900 mb-2">Timeline</label>
+            <input
+              type="text"
+              name="timeline"
+              value={formData.timeline}
+              onChange={handleChange}
+              placeholder="E.g., 2 weeks from start to delivery"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-900 mb-2">What&apos;s NOT included (out of scope)</label>
+            <textarea
+              name="outOfScope"
+              value={formData.outOfScope}
+              onChange={handleChange}
+              placeholder="Be specific about what you won&apos;t do. E.g., animations, custom coding, video production"
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200 h-24"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-6">
+            <button
+              onClick={handleSubmit}
+              className="flex-1 bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors"
+            >
+              Create project
+            </button>
+            <button
+              onClick={() => onNavigate('dashboard')}
+              className="flex-1 bg-slate-100 text-slate-900 py-3 rounded-lg font-semibold hover:bg-slate-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============= PROJECT DETAIL PAGE =============
+function ProjectDetailPage({ projectId, projects, onNavigate }: { projectId: number; projects: Project[]; onNavigate: (page: string) => void }) {
+  const project = projects.find((p: Project) => p.id === projectId);
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-white font-['Inter',sans-serif]">
+        <nav className="border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <button
+              onClick={() => onNavigate('dashboard')}
+              className="text-slate-600 hover:text-slate-900 font-medium transition-colors flex items-center gap-2"
+            >
+              <Icons.Back />
+              Back to projects
+            </button>
+          </div>
+        </nav>
+        <div className="text-center py-24">
+          <p className="text-slate-600">Project not found</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white font-['Inter',sans-serif]">
+      <nav className="border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <button
+            onClick={() => onNavigate('dashboard')}
+            className="text-slate-600 hover:text-slate-900 font-medium transition-colors flex items-center gap-2"
+          >
+            <Icons.Back />
+            Back to projects
+          </button>
+        </div>
+      </nav>
+
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="mb-12">
+          <h1 className="text-4xl font-semibold text-slate-900 mb-2">{project.projectName}</h1>
+          <p className="text-slate-600">Client: {project.clientName}</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <div className="w-5 h-5 text-slate-900">
+                <Icons.Check />
+              </div>
+              What&apos;s included
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Deliverables</p>
+                <p className="text-slate-600 mt-1">{project.deliverables}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">Revisions</p>
+                <p className="text-slate-600 mt-1">{project.revisions}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">Timeline</p>
+                <p className="text-slate-600 mt-1">{project.timeline}</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <div className="w-5 h-5 text-slate-900">
+                <Icons.Alert />
+              </div>
+              What&apos;s NOT included
+            </h3>
+            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
+              <p className="text-slate-600">{project.outOfScope}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 pt-8 border-t border-slate-200">
+          <h3 className="text-lg font-semibold text-slate-900 mb-6">Next steps</h3>
+          <div className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <p className="font-medium text-slate-900 mb-2">Share with your client</p>
+              <p className="text-slate-600 text-sm mb-4">Get them to review and acknowledge this scope before starting work.</p>
+              <button className="text-slate-900 font-medium text-sm hover:underline">Copy scope link →</button>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <p className="font-medium text-slate-900 mb-2">Monitor email & Slack</p>
+              <p className="text-slate-600 text-sm mb-4">Connect your email or Slack to get alerts when scope creep appears.</p>
+              <button className="text-slate-900 font-medium text-sm hover:underline">Coming soon</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
